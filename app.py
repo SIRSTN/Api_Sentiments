@@ -5,6 +5,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from datetime import datetime
 import spacy
 import requests
+from langdetect import detect
 
 # Initialize spaCy
 nlp = spacy.load("en_core_web_sm")
@@ -91,16 +92,35 @@ def store_text():
     related_entries = []
     total_textblob_sentiment = 0
     total_vader_sentiment = 0
-    count_entries = 0
+    count_textblob_entries = 0
+    count_vader_entries = 0
 
     for entry in data['entries']:
+        # Detect the language of the text
+        try:
+            lang = detect(entry['text'])
+        except:
+            # If language detection fails, assume the language is not English
+            lang = 'not English'
+
+        # If the text is not English, skip to the next entry
+        if lang != 'en':
+            continue
+
         textblob_sentiment = TextBlob(entry['text']).sentiment.polarity
         vader_sentiment = sid.polarity_scores(entry['text'])['compound']
 
+        # Skip this entry if both sentiment scores are 0
+        if textblob_sentiment == 0 and vader_sentiment == 0:
+            continue
+
         if extract_financial_mention(entry['text']):
-            total_textblob_sentiment += textblob_sentiment
-            total_vader_sentiment += vader_sentiment
-            count_entries += 1
+            if textblob_sentiment != 0:
+                total_textblob_sentiment += textblob_sentiment
+                count_textblob_entries += 1
+            if vader_sentiment != 0:
+                total_vader_sentiment += vader_sentiment
+                count_vader_entries += 1
 
             entry_to_store = {
                 'user': entry['user'],
@@ -113,12 +133,16 @@ def store_text():
             ids.append(str(result.inserted_id))
             related_entries.append(result.inserted_id)
 
+    # Calculate averages independently for TextBlob and VADER, only if their counts are greater than zero
+    average_textblob_sentiment = (total_textblob_sentiment / count_textblob_entries) if count_textblob_entries > 0 else None
+    average_vader_sentiment = (total_vader_sentiment / count_vader_entries) if count_vader_entries > 0 else None
+
     average_entry = {
         'source': source,
         'keyword': keyword,
         'timestamp': datetime.now(),
-        'textblob_sentiment': total_textblob_sentiment / count_entries if count_entries > 0 else None,
-        'vader_sentiment': total_vader_sentiment / count_entries if count_entries > 0 else None,
+        'textblob_sentiment': average_textblob_sentiment,
+        'vader_sentiment': average_vader_sentiment,
         'price': get_bitcoin_price() if keyword.lower() == 'bitcoin' else None
     }
 
