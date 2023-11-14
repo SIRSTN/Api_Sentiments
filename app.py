@@ -124,6 +124,7 @@ def store_text():
 
             entry_to_store = {
                 'user': entry['user'],
+                'title': entry.get('title', ''),
                 'text': entry['text'],
                 'date': datetime.fromisoformat(entry['date']),
                 'textblob_sentiment': textblob_sentiment,
