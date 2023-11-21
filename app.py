@@ -19,7 +19,7 @@ app = Flask(__name__)
 client = MongoClient("mongodb://localhost:27017/")
 db = client['SocialMedia_Analysis']
 test_collection = db['Sentiment_Details']
-average_collection = db['Sentiment_Average']
+average_collection = db['Sentiment_Averages']
 
 def get_bitcoin_price():
     url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
