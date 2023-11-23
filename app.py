@@ -21,15 +21,15 @@ db = client['SocialMedia_Analysis']
 test_collection = db['Sentiment_Details']
 average_collection = db['Sentiment_Averages']
 
-def get_bitcoin_price():
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+def get_cryptocurrency_price(crypto_name):
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_name.lower()}&vs_currencies=usd"
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
-        return data["bitcoin"]["usd"]
+        return data[crypto_name.lower()]["usd"]
     except requests.RequestException as e:
-        print(f"Error fetching Bitcoin price: {e}")
+        print(f"Error fetching {crypto_name} price: {e}")
         return None
 
 def extract_financial_mention(text):
@@ -96,25 +96,28 @@ def store_text():
     count_vader_entries = 0
 
     for entry in data['entries']:
-        # Detect the language of the text
+        # Concatenate the title and text for sentiment analysis
+        combined_text = entry.get('title', '') + ' ' + entry['text']
+
+        # Detect the language of the combined text
         try:
-            lang = detect(entry['text'])
+            lang = detect(combined_text)
         except:
-            # If language detection fails, assume the language is not English
+																			 
             lang = 'not English'
 
-        # If the text is not English, skip to the next entry
+															
         if lang != 'en':
             continue
 
-        textblob_sentiment = TextBlob(entry['text']).sentiment.polarity
-        vader_sentiment = sid.polarity_scores(entry['text'])['compound']
+        textblob_sentiment = TextBlob(combined_text).sentiment.polarity
+        vader_sentiment = sid.polarity_scores(combined_text)['compound']
 
-        # Skip this entry if both sentiment scores are 0
+														
         if textblob_sentiment == 0 and vader_sentiment == 0:
             continue
 
-        if extract_financial_mention(entry['text']):
+        if extract_financial_mention(combined_text):
             if textblob_sentiment != 0:
                 total_textblob_sentiment += textblob_sentiment
                 count_textblob_entries += 1
@@ -134,9 +137,13 @@ def store_text():
             ids.append(str(result.inserted_id))
             related_entries.append(result.inserted_id)
 
-    # Calculate averages independently for TextBlob and VADER, only if their counts are greater than zero
+																										 
     average_textblob_sentiment = (total_textblob_sentiment / count_textblob_entries) if count_textblob_entries > 0 else None
     average_vader_sentiment = (total_vader_sentiment / count_vader_entries) if count_vader_entries > 0 else None
+
+    cryptocurrency_price = None
+    if keyword.lower() in ['bitcoin', 'ethereum']:
+        cryptocurrency_price = get_cryptocurrency_price(keyword)
 
     average_entry = {
         'source': source,
@@ -144,7 +151,7 @@ def store_text():
         'timestamp': datetime.now(),
         'textblob_sentiment': average_textblob_sentiment,
         'vader_sentiment': average_vader_sentiment,
-        'price': get_bitcoin_price() if keyword.lower() == 'bitcoin' else None
+        'price': cryptocurrency_price
     }
 
     average_result = average_collection.insert_one(average_entry)
