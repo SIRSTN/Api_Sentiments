@@ -6,6 +6,7 @@ from datetime import datetime
 import spacy
 import requests
 from langdetect import detect
+from configparser import ConfigParser
 
 # Initialize spaCy
 nlp = spacy.load("en_core_web_sm")
@@ -15,9 +16,13 @@ sid = SentimentIntensityAnalyzer()
 
 app = Flask(__name__)
 
+# Load configuration file
+config = ConfigParser()
+config.read('config.ini')
+
 # Setup MongoDB Client
-client = MongoClient("mongodb://localhost:27017/")
-db = client['SocialMedia_Analysis']
+client = MongoClient(config.get('API_Sentiments', 'MongoClient'))
+db = client['Cluster0']
 test_collection = db['Sentiment_Details']
 average_collection = db['Sentiment_Averages']
 
