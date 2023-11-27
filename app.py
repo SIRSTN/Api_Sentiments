@@ -143,29 +143,33 @@ def store_text():
             related_entries.append(result.inserted_id)
 
 																										 
-    average_textblob_sentiment = (total_textblob_sentiment / count_textblob_entries) if count_textblob_entries > 0 else None
-    average_vader_sentiment = (total_vader_sentiment / count_vader_entries) if count_vader_entries > 0 else None
+    average_textblob_sentiment = (total_textblob_sentiment / count_textblob_entries) if count_textblob_entries > 0 else 0
+    average_vader_sentiment = (total_vader_sentiment / count_vader_entries) if count_vader_entries > 0 else 0
 
     cryptocurrency_price = None
     if keyword.lower() in ['bitcoin', 'ethereum']:
         cryptocurrency_price = get_cryptocurrency_price(keyword)
 
-    average_entry = {
-        'source': source,
-        'keyword': keyword,
-        'timestamp': datetime.now(),
-        'textblob_sentiment': average_textblob_sentiment,
-        'vader_sentiment': average_vader_sentiment,
-        'price': cryptocurrency_price
-    }
+    # Check if either average sentiment is not None and not zero before storing
+    if average_textblob_sentiment != 0 and average_vader_sentiment != 0:
+        average_entry = {
+            'source': source,
+            'keyword': keyword,
+            'timestamp': datetime.now(),
+            'textblob_sentiment': average_textblob_sentiment,
+            'vader_sentiment': average_vader_sentiment,
+            'price': cryptocurrency_price
+        }
 
-    average_result = average_collection.insert_one(average_entry)
-    average_id = average_result.inserted_id
+        average_result = average_collection.insert_one(average_entry)
+        average_id = average_result.inserted_id
 
-    for entry_id in related_entries:
-        test_collection.update_one({'_id': entry_id}, {'$set': {'average_id': average_id}})
+        for entry_id in related_entries:
+            test_collection.update_one({'_id': entry_id}, {'$set': {'average_id': average_id}})
 
-    return jsonify({'ids': ids, 'msg': 'Texts stored', 'average_id': str(average_id)}), 200
+        return jsonify({'ids': ids, 'msg': 'Texts stored', 'average_id': str(average_id)}), 200
+    else:
+        return jsonify({'ids': ids, 'msg': 'Texts stored, no average sentiment stored due to null or zero values'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
