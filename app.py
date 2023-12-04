@@ -26,8 +26,8 @@ config.read('config.ini')
 # Setup MongoDB Client
 mongo_client = MongoClient(config.get('API_Sentiments', 'MongoClient'))
 db = mongo_client['Cluster0']
-details_collection = db['Sentiment_Details']
-averages_collection = db['Sentiment_Averages']
+details_collection = db['Sentiment_DetailsTest']
+averages_collection = db['Sentiment_AveragesTest']
 
 # Binance API Key and Secret
 api_key = os.environ.get(config.get('API_Sentiments', 'APIKey'))
@@ -155,7 +155,10 @@ def store_text():
     count_crypto_prices = 0
 
     for entry in data['entries']:
-        combined_text = entry.get('title', '') + ' ' + entry['text']
+        combined_text = (entry.get('title', '') or '') + ' ' + (entry.get('text', '') or '')
+        
+        if len(combined_text) < 5:
+            continue
 
         try:
             lang = detect(combined_text)
@@ -232,4 +235,4 @@ def store_text():
         return jsonify({'ids': ids, 'msg': 'Texts stored, no average sentiment stored due to null or zero values'}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
