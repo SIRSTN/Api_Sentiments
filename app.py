@@ -26,8 +26,8 @@ config.read('config.ini')
 # Setup MongoDB Client
 mongo_client = MongoClient(config.get('API_Sentiments', 'MongoClient'))
 db = mongo_client['Cluster0']
-details_collection = db['Sentiment_DetailsTest']
-averages_collection = db['Sentiment_AveragesTest']
+details_collection = db['Sentiment_Details']
+averages_collection = db['Sentiment_Averages']
 
 # Binance API Key and Secret
 api_key = os.environ.get(config.get('API_Sentiments', 'APIKey'))
