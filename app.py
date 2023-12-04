@@ -153,6 +153,9 @@ def store_text():
     count_textblob_entries = 0
     count_vader_entries = 0
     count_crypto_prices = 0
+    total_entry_dates = []
+    count_entry_dates = 0
+    average_entry_date = 0
 
     for entry in data['entries']:
         combined_text = (entry.get('title', '') or '') + ' ' + (entry.get('text', '') or '')
@@ -175,14 +178,19 @@ def store_text():
             if textblob_sentiment != 0 or vader_sentiment != 0:
 
                 entry_date = dateutil.parser.parse(entry['date'])
+                total_entry_dates.append(entry_date)
+                count_entry_dates += 1
+
                 crypto_price = get_datetime_binance_price(keyword, entry['date']) 
                 crypto_price = float(crypto_price) if crypto_price is not None else 0
                 
                 if crypto_price == 0:
+                    print("Warning datetime binance price not found")
                     crypto_price = get_current_binance_price(keyword)
                     crypto_price = float(crypto_price) if crypto_price is not None else 0
 
                 if crypto_price == 0:
+                    print("Warning current binance price not found")
                     crypto_price = get_coingecko_price(keyword)
                     crypto_price = float(crypto_price) if crypto_price is not None else 0
 
@@ -211,6 +219,12 @@ def store_text():
                         total_crypto_price += crypto_price
                         count_crypto_prices += 1
 
+    if total_entry_dates:
+        average_timestamp = sum([date.timestamp() for date in total_entry_dates]) / len(total_entry_dates)
+        average_entry_date = dt.fromtimestamp(average_timestamp)
+    else:
+        average_entry_date = None 
+
     average_textblob_sentiment = total_textblob_sentiment / count_textblob_entries if count_textblob_entries > 0 else 0
     average_vader_sentiment = total_vader_sentiment / count_vader_entries if count_vader_entries > 0 else 0
     average_crypto_price = total_crypto_price / count_crypto_prices if count_crypto_prices > 0 else 0
@@ -219,7 +233,7 @@ def store_text():
         average_entry = {
             'source': source,
             'keyword': keyword,
-            'timestamp': dt.now(),
+            'timestamp': average_entry_date,
             'textblob_sentiment': average_textblob_sentiment,
             'vader_sentiment': average_vader_sentiment,
             'price': average_crypto_price
