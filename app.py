@@ -154,7 +154,6 @@ def store_text():
     count_vader_entries = 0
     count_crypto_prices = 0
     total_entry_dates = []
-    count_entry_dates = 0
     average_entry_date = 0
 
     for entry in data['entries']:
@@ -179,7 +178,6 @@ def store_text():
 
                 entry_date = dateutil.parser.parse(entry['date'])
                 total_entry_dates.append(entry_date)
-                count_entry_dates += 1
 
                 crypto_price = get_datetime_binance_price(keyword, entry['date']) 
                 crypto_price = float(crypto_price) if crypto_price is not None else 0
